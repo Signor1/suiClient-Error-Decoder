@@ -1,3 +1,5 @@
+// index.ts file
+
 import { DEFAULT_SUI_ERROR_CODES } from "./defaultErrors.js";
 
 export interface ErrorCodeMap {

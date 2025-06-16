@@ -48,7 +48,9 @@
     "custom-errors",
     "errors",
     "move-abort-errors",
-    "abort"
+    "abort",
+    "typescript",
+    "javascript"
   ],
   "author": "SignorDev <emmanuelomemgboji@gmail.com>",
   "license": "MIT",

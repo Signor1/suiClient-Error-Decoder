@@ -1,3 +1,5 @@
+// defaultErrors.ts file
+
 import { ErrorCodeMap } from "./index.js";
 
 export const MOVE_ABORT_ERROR_CODES: ErrorCodeMap = {
