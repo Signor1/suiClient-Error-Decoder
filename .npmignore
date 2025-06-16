@@ -1,0 +1,25 @@
+# Source files
+src/
+tests/
+__tests__/
+
+# Config files
+tsconfig.json
+jest.config.js
+.eslintrc.json
+.gitignore
+
+# Build artifacts
+*.log
+*.tsbuildinfo
+
+# Coverage reports
+coverage/
+
+# Editor files
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*

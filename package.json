@@ -1,0 +1,74 @@
+{
+  "name": "suiclient-error-decoder",
+  "version": "1.0.0",
+  "description": "A comprehensive error decoder for Sui blockchain transactions with support for custom error codes",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "!dist/**/*.test.*",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "prepublishOnly": "npm run build",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "coverage": "jest --coverage",
+    "prepack": "npm run test && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Signor1/suiClient-Error-Decoder.git"
+  },
+  "keywords": [
+    "sui",
+    "blockchain",
+    "error",
+    "decoder",
+    "move",
+    "transaction",
+    "cetus",
+    "defi",
+    "error-decoder",
+    "abort-errors",
+    "sui-error-decoder",
+    "custom-errors",
+    "errors",
+    "move-abort-errors",
+    "abort"
+  ],
+  "author": "SignorDev <emmanuelomemgboji@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Signor1/suiClient-Error-Decoder/issues"
+  },
+  "homepage": "https://github.com/Signor1/suiClient-Error-Decoder#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "@mysten/sui": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.34.0",
+    "@typescript-eslint/parser": "^8.34.0",
+    "eslint": "^9.29.0",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.8.3"
+  }
+}
