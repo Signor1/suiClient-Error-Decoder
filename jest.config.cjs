@@ -1,15 +1,17 @@
 module.exports = {
-  preset: "ts-jest",
+  preset: "ts-jest/presets/default-esm",
   testEnvironment: "node",
-  roots: ["<rootDir>/src"],
+  roots: ["<rootDir>/src", "<rootDir>/tests"],
   testMatch: ["**/__tests__/**/*.+(ts|tsx)", "**/*.(test|spec).+(ts|tsx)"],
   transform: {
     "^.+\\.(ts|tsx)$": [
       "ts-jest",
       {
+        tsconfig: "tsconfig.test.json",
         diagnostics: {
           warnOnly: true,
         },
+        useESM: true,
       },
     ],
   },

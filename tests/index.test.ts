@@ -565,8 +565,8 @@ describe("Edge Cases and Error Handling", () => {
 describe("Performance and Memory", () => {
   test("should handle large numbers of error codes efficiently", () => {
     const largeCodes: ErrorCodeMap = {};
-    for (let i = 10000; i < 20000; i++) {
-      largeCodes[i] = `Error ${i}`;
+    for (let index = 10000; index < 20000; index++) {
+      largeCodes[index] = `Error ${index}`;
     }
 
     const decoder = new SuiClientErrorDecoder({
@@ -585,11 +585,11 @@ describe("Performance and Memory", () => {
   test("should not leak memory when creating multiple decoders", () => {
     const initialMemory = process.memoryUsage().heapUsed;
 
-    for (let i = 0; i < 1000; i++) {
+    for (let index = 0; index < 1000; index++) {
       const decoder = new SuiClientErrorDecoder({
-        customErrorCodes: { [i]: `Error ${i}` },
+        customErrorCodes: { [index]: `Error ${index}` },
       });
-      decoder.parseError(`Error ${i}`);
+      decoder.parseError(`Error ${index}`);
     }
 
     const finalMemory = process.memoryUsage().heapUsed;

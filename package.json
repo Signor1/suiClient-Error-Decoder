@@ -20,12 +20,12 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "coverage:badge": "coverage-badge-coverage-badges --output ./coverage-badge.json",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
+    "coverage:badge": "coverage-badges --output ./coverage-badge.json",
     "prepublishOnly": "npm run build",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
+    "lint": "eslint src/**/*.ts tests/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts tests/**/*.ts --fix",
     "coverage": "jest --coverage",
     "prepack": "npm run test && npm run build"
   },
@@ -67,10 +67,11 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.34.0",
-    "@typescript-eslint/parser": "^8.34.0",
+    "@typescript-eslint/eslint-plugin": "^8.34.1",
+    "@typescript-eslint/parser": "^8.34.1",
     "coverage-badges": "^1.0.7",
     "eslint": "^9.29.0",
+    "eslint-plugin-jest": "^28.14.0",
     "jest": "^30.0.0",
     "ts-jest": "^29.4.0",
     "typescript": "^5.8.3"

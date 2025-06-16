@@ -5,8 +5,9 @@ __tests__/
 
 # Config files
 tsconfig.json
-jest.config.js
-.eslintrc.json
+tsconfig.test.json
+jest.config.cjs
+eslint.config.js
 .gitignore
 
 # Build artifacts

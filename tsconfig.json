@@ -15,7 +15,7 @@
       "forceConsistentCasingInFileNames": true,
       "resolveJsonModule": true,
       "allowSyntheticDefaultImports": true,
-      "types": ["jest", "node"]
+      "types": ["node"]
     },
     "include": [
       "src/**/*"
@@ -23,9 +23,9 @@
     "exclude": [
       "node_modules",
       "dist",
-      "**/*.test.ts"
+      "tests/**/*"
     ],
     "ts-node": {
     "esm": true
-    }
+  }
 }
