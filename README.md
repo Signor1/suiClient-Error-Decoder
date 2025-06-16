@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Signor1/suiClient-Error-Decoder/main/coverage-badge.json&style=flat-square)](https://github.com/Signor1/suiClient-Error-Decoder)
 [![Sui Blockchain](https://img.shields.io/badge/Built%20for-Sui%20Blockchain-6FBCF0.svg?style=flat-square)](https://sui.io)
-[![Move](https://img.shields.io/badge/Move-008080?style=for-the-badge&logo=rust&logoColor=white)](https://move-language.github.io/move/)
+[![Move](https://img.shields.io/badge/Move-008080?style=flat-square&logo=rust&logoColor=white)](https://move-language.github.io/move/)
 
 A robust error decoding toolkit for Sui blockchain developers. Intelligently parses Move abort codes, system errors, and transaction failures with zero dependencies. Features customizable error mappings, automatic error categorization, and Sui-specific pattern recognition to simplify debugging and improve user feedback in dApps.
 
