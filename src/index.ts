@@ -1,18 +1,27 @@
 // index.ts file
 
-import { DEFAULT_SUI_ERROR_CODES } from "./defaultErrors.js";
+import {
+  DEFAULT_SUI_ERROR_CODES,
+  TRANSACTION_ERROR_CODES,
+} from "./defaultErrors.js";
 
 export interface ErrorCodeMap {
   [key: number]: string;
 }
 
+export interface TransactionErrorMap {
+  [key: string]: string;
+}
+
 export interface SuiErrorDecoderOptions {
   customErrorCodes?: ErrorCodeMap;
+  customTransactionErrors?: TransactionErrorMap;
   includeDefaults?: boolean;
 }
 
 export interface ParsedError {
   code?: number;
+  errorType?: string;
   message: string;
   isKnownError: boolean;
   category: "move_abort" | "transaction" | "sui_system" | "unknown";
@@ -21,13 +30,22 @@ export interface ParsedError {
 
 export class SuiClientErrorDecoder {
   private errorCodes: ErrorCodeMap;
+  private transactionErrors: TransactionErrorMap;
 
   constructor(options: SuiErrorDecoderOptions = {}) {
-    const { customErrorCodes = {}, includeDefaults = true } = options;
+    const {
+      customErrorCodes = {},
+      customTransactionErrors = {},
+      includeDefaults = true,
+    } = options;
 
     this.errorCodes = includeDefaults
       ? { ...DEFAULT_SUI_ERROR_CODES, ...customErrorCodes }
       : customErrorCodes;
+
+    this.transactionErrors = includeDefaults
+      ? { ...TRANSACTION_ERROR_CODES, ...customTransactionErrors }
+      : customTransactionErrors;
   }
 
   /**
@@ -35,6 +53,16 @@ export class SuiClientErrorDecoder {
    */
   public addErrorCodes(errorCodes: ErrorCodeMap): void {
     this.errorCodes = { ...this.errorCodes, ...errorCodes };
+  }
+
+  /**
+   * Add or update custom transaction errors
+   */
+  public addTransactionErrors(transactionErrors: TransactionErrorMap): void {
+    this.transactionErrors = {
+      ...this.transactionErrors,
+      ...transactionErrors,
+    };
   }
 
   /**
@@ -47,10 +75,30 @@ export class SuiClientErrorDecoder {
   }
 
   /**
+   * Update the default transaction error codes
+   */
+  public updateDefaultTransactionErrors(
+    defaultTransactionErrors: TransactionErrorMap
+  ): void {
+    const customTransactionErrors = this.getCustomTransactionErrors();
+    this.transactionErrors = {
+      ...defaultTransactionErrors,
+      ...customTransactionErrors,
+    };
+  }
+
+  /**
    * Get all error codes currently in use
    */
   public getErrorCodes(): ErrorCodeMap {
     return { ...this.errorCodes };
+  }
+
+  /**
+   * Get all transaction errors currently in use
+   */
+  public getTransactionErrors(): TransactionErrorMap {
+    return { ...this.transactionErrors };
   }
 
   /**
@@ -67,12 +115,37 @@ export class SuiClientErrorDecoder {
   }
 
   /**
+   * Get only custom transaction errors (excluding defaults)
+   */
+  private getCustomTransactionErrors(): TransactionErrorMap {
+    const customErrors: TransactionErrorMap = {};
+    for (const [errorType, message] of Object.entries(this.transactionErrors)) {
+      if (!TRANSACTION_ERROR_CODES[errorType]) {
+        customErrors[errorType] = message;
+      }
+    }
+    return customErrors;
+  }
+
+  /**
    * Parse and decode a Sui transaction error
    */
   public parseError(error: any): ParsedError {
     const errorString = this.extractErrorString(error);
 
-    // Try to extract error code using various patterns
+    // First, check for transaction error types (string-based)
+    const transactionError = this.checkTransactionErrors(errorString);
+    if (transactionError) {
+      return {
+        errorType: transactionError.errorType,
+        message: transactionError.message,
+        isKnownError: true,
+        category: "transaction",
+        originalError: error,
+      };
+    }
+
+    // Try to extract numeric error code
     const errorCode = this.extractErrorCode(errorString);
 
     if (errorCode !== null) {
@@ -107,7 +180,7 @@ export class SuiClientErrorDecoder {
       };
     }
 
-    // Check for common transaction failures
+    // Check for common system failures
     const systemError = this.checkSystemErrors(errorString);
     if (systemError) {
       return {
@@ -128,10 +201,94 @@ export class SuiClientErrorDecoder {
   }
 
   /**
+   * Check for transaction errors (string-based error types)
+   */
+  private checkTransactionErrors(
+    errorString: string
+  ): { errorType: string; message: string } | null {
+    // Check for exact matches with transaction error keys
+    for (const [errorType, message] of Object.entries(this.transactionErrors)) {
+      if (errorString.includes(errorType)) {
+        return {
+          errorType,
+          message: `Transaction Error (${errorType}): ${message}`,
+        };
+      }
+    }
+
+    // Check for common transaction error patterns
+    const transactionPatterns = [
+      {
+        pattern: /insufficient.*gas/i,
+        errorType: "INSUFFICIENT_GAS",
+        message:
+          this.transactionErrors.INSUFFICIENT_GAS ||
+          "Insufficient gas for transaction",
+      },
+      {
+        pattern: /invalid.*gas.*object/i,
+        errorType: "INVALID_GAS_OBJECT",
+        message:
+          this.transactionErrors.INVALID_GAS_OBJECT || "Invalid gas object",
+      },
+      {
+        pattern: /object.*too.*big/i,
+        errorType: "OBJECT_TOO_BIG",
+        message: this.transactionErrors.OBJECT_TOO_BIG || "Object is too large",
+      },
+      {
+        pattern: /package.*too.*big/i,
+        errorType: "PACKAGE_TOO_BIG",
+        message:
+          this.transactionErrors.PACKAGE_TOO_BIG || "Package is too large",
+      },
+      {
+        pattern: /circular.*ownership/i,
+        errorType: "CIRCULAR_OBJECT_OWNERSHIP",
+        message:
+          this.transactionErrors.CIRCULAR_OBJECT_OWNERSHIP ||
+          "Circular object ownership detected",
+      },
+      {
+        pattern: /insufficient.*coin.*balance/i,
+        errorType: "INSUFFICIENT_COIN_BALANCE",
+        message:
+          this.transactionErrors.INSUFFICIENT_COIN_BALANCE ||
+          "Insufficient coin balance",
+      },
+      {
+        pattern: /function.*not.*found/i,
+        errorType: "FUNCTION_NOT_FOUND",
+        message:
+          this.transactionErrors.FUNCTION_NOT_FOUND || "Function not found",
+      },
+      {
+        pattern: /move.*abort/i,
+        errorType: "MOVE_ABORT",
+        message: this.transactionErrors.MOVE_ABORT || "Move runtime abort",
+      },
+    ];
+
+    for (const { pattern, errorType, message } of transactionPatterns) {
+      if (pattern.test(errorString)) {
+        return {
+          errorType,
+          message: `Transaction Error (${errorType}): ${message}`,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Extract error string from various error formats
    */
   private extractErrorString(error: any): string {
-    return error?.toString() || error?.message || String(error) || "";
+    if (typeof error === "string") return error;
+    if (error?.message) return error.message;
+    if (error?.toString) return error.toString();
+    return String(error) || "";
   }
 
   /**
@@ -155,12 +312,17 @@ export class SuiClientErrorDecoder {
       // Generic error code patterns
       /Error\s*Code\s*(\d+)/i,
       /ErrorCode:?\s*(\d+)/i,
+      /code[:\s]*(\d+)/i,
+      /error[:\s]*(\d+)/i,
     ];
 
     for (const pattern of patterns) {
       const match = errorString.match(pattern);
       if (match) {
-        return parseInt(match[1]);
+        const code = parseInt(match[1]);
+        if (!isNaN(code)) {
+          return code;
+        }
       }
     }
 
@@ -282,14 +444,24 @@ export class SuiClientErrorDecoder {
     errorCode: number,
     errorString: string
   ): ParsedError["category"] {
-    // Move abort errors typically have codes
-    if (errorCode >= 1 && errorCode <= 999) {
+    // Move abort errors (1000-1999)
+    if (errorCode >= 1000 && errorCode <= 1999) {
       return "move_abort";
     }
 
-    // System errors typically have higher codes
-    if (errorCode >= 1000) {
+    // Sui system errors (2000-2999)
+    if (errorCode >= 2000 && errorCode <= 2999) {
       return "sui_system";
+    }
+
+    // Binary/serialization errors (3000+)
+    if (errorCode >= 3000) {
+      return "sui_system";
+    }
+
+    // Custom error codes (1-999)
+    if (errorCode >= 1 && errorCode <= 999) {
+      return "move_abort";
     }
 
     // Check content for category hints
@@ -318,10 +490,24 @@ export class SuiClientErrorDecoder {
   }
 
   /**
+   * Check if a transaction error type is known
+   */
+  public isKnownTransactionError(errorType: string): boolean {
+    return errorType in this.transactionErrors;
+  }
+
+  /**
    * Get error message for a specific code
    */
   public getErrorMessage(code: number): string | null {
     return this.errorCodes[code] || null;
+  }
+
+  /**
+   * Get transaction error message for a specific error type
+   */
+  public getTransactionErrorMessage(errorType: string): string | null {
+    return this.transactionErrors[errorType] || null;
   }
 }
 
@@ -329,14 +515,22 @@ export class SuiClientErrorDecoder {
 export const defaultDecoder = new SuiClientErrorDecoder();
 
 // Export the decode function for one-liner usage
-export function decodeSuiError(error: any, customCodes?: ErrorCodeMap): string {
-  if (customCodes) {
+export function decodeSuiError(
+  error: any,
+  customCodes?: ErrorCodeMap,
+  customTransactionErrors?: TransactionErrorMap
+): string {
+  if (customCodes || customTransactionErrors) {
     const decoder = new SuiClientErrorDecoder({
       customErrorCodes: customCodes,
+      customTransactionErrors: customTransactionErrors,
     });
     return decoder.decodeError(error);
   }
   return defaultDecoder.decodeError(error);
 }
 
-export { DEFAULT_SUI_ERROR_CODES } from "./defaultErrors.js";
+export {
+  DEFAULT_SUI_ERROR_CODES,
+  TRANSACTION_ERROR_CODES,
+} from "./defaultErrors.js";

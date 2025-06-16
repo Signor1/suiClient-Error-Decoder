@@ -1,6 +1,6 @@
 // defaultErrors.ts file
 
-import { ErrorCodeMap } from "./index.js";
+import { ErrorCodeMap, TransactionErrorMap } from "./index.js";
 
 export const MOVE_ABORT_ERROR_CODES: ErrorCodeMap = {
   1000: "Unknown verification error",
@@ -167,7 +167,7 @@ export const SUI_SYSTEM_ERROR_CODES: ErrorCodeMap = {
   3028: "Unknown jump table flag",
 };
 
-export const TRANSACTION_ERROR_CODES = {
+export const TRANSACTION_ERROR_CODES: TransactionErrorMap = {
   // These are string-based enums, not numeric codes
   INSUFFICIENT_GAS: "Insufficient gas.",
   INVALID_GAS_OBJECT: "Invalid Gas object.",
@@ -224,3 +224,9 @@ export const DEFAULT_SUI_ERROR_CODES: ErrorCodeMap = {
   ...SUI_SYSTEM_ERROR_CODES,
   // Transaction Error Codes
 };
+
+/**
+ * Version information for tracking updates
+ */
+export const ERROR_CODES_VERSION = "1.0.0";
+export const LAST_UPDATED = "2025-06-16";
