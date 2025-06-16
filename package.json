@@ -22,11 +22,10 @@
     "build": "tsc",
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
-    "coverage:badge": "coverage-badges --output ./coverage-badge.json",
     "prepublishOnly": "npm run build",
     "lint": "eslint src/**/*.ts tests/**/*.ts",
     "lint:fix": "eslint src/**/*.ts tests/**/*.ts --fix",
-    "coverage": "jest --coverage",
+    "coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage",
     "prepack": "npm run test && npm run build"
   },
   "repository": {

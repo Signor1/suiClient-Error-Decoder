@@ -3,7 +3,6 @@
 [![npm version](https://img.shields.io/npm/v/suiclient-error-decoder.svg?style=flat-square)](https://www.npmjs.com/package/suiclient-error-decoder)
 [![npm downloads](https://img.shields.io/npm/dm/suiclient-error-decoder.svg?style=flat-square)](https://npm-stat.com/charts.html?package=suiclient-error-decoder)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Signor1/suiClient-Error-Decoder/main/coverage-badge.json&style=flat-square)](https://github.com/Signor1/suiClient-Error-Decoder)
 [![Sui Blockchain](https://img.shields.io/badge/Built%20for-Sui%20Blockchain-6FBCF0.svg?style=flat-square)](https://sui.io)
 [![Move](https://img.shields.io/badge/Move-008080?style=flat-square&logo=rust&logoColor=white)](https://move-language.github.io/move/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
