@@ -16,7 +16,19 @@
     "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
     "no-console": "warn",
     "jest/no-disabled-tests": "warn",
-    "jest/no-focused-tests": "error"
+    "jest/no-focused-tests": "error",
+    "unicorn/prefer-module": "off",
+    "unicorn/prevent-abbreviations": [
+      "error",
+      {
+        "allowList": {
+          "dApp": true,
+          "Sui": true,
+          "Move": true,
+          "txb": true
+        }
+      }
+    ]
   },
-  "ignorePatterns": ["dist/**", "coverage/**"]
+  "ignorePatterns": ["dist/**", "coverage/**", "*.d.ts"]
 }
