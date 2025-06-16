@@ -285,10 +285,45 @@ export class SuiClientErrorDecoder {
    * Extract error string from various error formats
    */
   private extractErrorString(error: any): string {
-    if (typeof error === "string") return error;
-    if (error?.message) return error.message;
-    if (error?.toString) return error.toString();
-    return String(error) || "";
+    if (error === null || error === undefined) {
+      return "";
+    }
+
+    if (typeof error === "string") {
+      return error;
+    }
+
+    // Handle Error objects and objects with message property
+    if (error && typeof error === "object") {
+      if (error.message && typeof error.message === "string") {
+        return error.message;
+      }
+
+      // Handle nested errors (e.g., error.cause.message)
+      if (
+        error.cause &&
+        error.cause.message &&
+        typeof error.cause.message === "string"
+      ) {
+        return error.cause.message;
+      }
+
+      // Try toString method
+      if (typeof error.toString === "function") {
+        const stringified = error.toString();
+        // Avoid "[object Object]" results
+        if (stringified !== "[object Object]") {
+          return stringified;
+        }
+      }
+    }
+
+    // Fallback to String conversion
+    try {
+      return String(error);
+    } catch (e) {
+      return "";
+    }
   }
 
   /**
@@ -296,8 +331,8 @@ export class SuiClientErrorDecoder {
    */
   private extractErrorCode(errorString: string): number | null {
     const patterns = [
-      // Standard MoveAbort patterns
-      /MoveAbort\([^,]+,\s*(\d+)\)/,
+      // Standard MoveAbort patterns - more specific patterns first
+      /MoveAbort\([^,)]*,\s*(\d+)\)/,
       /MoveAbort\([^)]+\)\s*,\s*(\d+)\)/,
       /}, (\d+)\) in command/,
       /abort_code:\s*(\d+)/,
@@ -309,7 +344,7 @@ export class SuiClientErrorDecoder {
       /InsufficientLiquidity\((\d+)\)/,
       /LaunchpadError\((\d+)\)/,
 
-      // Generic error code patterns
+      // Generic error code patterns - less specific patterns last
       /Error\s*Code\s*(\d+)/i,
       /ErrorCode:?\s*(\d+)/i,
       /code[:\s]*(\d+)/i,
@@ -318,9 +353,10 @@ export class SuiClientErrorDecoder {
 
     for (const pattern of patterns) {
       const match = errorString.match(pattern);
-      if (match) {
-        const code = parseInt(match[1]);
-        if (!isNaN(code)) {
+      if (match && match[1]) {
+        const code = parseInt(match[1], 10);
+        if (!isNaN(code) && code >= 0) {
+          // Only accept non-negative numbers
           return code;
         }
       }
