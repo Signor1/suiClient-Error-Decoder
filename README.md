@@ -23,64 +23,382 @@
 npm install suiclient-error-decoder
 # or
 yarn add suiclient-error-decoder
+# or
+pnpm add suiclient-error-decoder
 ```
 
-## Usage
-
-### Basic Usage
+## Quick Start
 
 ```typescript
-import { SuiClientErrorDecoder, decodeSuiError } from 'suiclient-error-decoder';
+import { decodeSuiError, SuiClientErrorDecoder } from 'suiclient-error-decoder';
 
-// Create an instance with default error codes
-const decoder = new SuiClientErrorDecoder();
-
-// Example error (in real usage, this would be caught from a transaction)
-const error = new Error('MoveAbort(0x123, 7) in command');
-
-// Parse the error
-const parsed = decoder.parseError(error);
-console.log(parsed.message); // "Error Code 7: Insufficient balance or resources"
-
-// Or use the convenience function
-const message = decodeSuiError(error);
-console.log(message); // same as above
+// Quick one-liner decoding
+try {
+  // Your Sui transaction code here
+  await suiClient.executeTransactionBlock(/* ... */);
+} catch (error) {
+  const humanReadableError = decodeSuiError(error);
+  console.error(humanReadableError);
+  // Output: "Error Code 1001: Index out of bounds"
+}
 ```
 
-### Adding Custom Error Codes
+## Usage Examples
+
+### 1. Basic Setup and Usage
 
 ```typescript
-const customDecoder = new SuiClientErrorDecoder({
-  customErrorCodes: {
-    10000: "My custom error",
-  },
-});
-
-const error = new Error('MoveAbort(0x123, 10000)');
-console.log(customDecoder.decodeError(error)); // "Error Code 10000: My custom error"
-```
-
-### Using with Sui dApp Kit
-
-```typescript
-import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { SuiClient } from '@mysten/sui.js/client';
 import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
 
-function MyComponent() {
-  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
-  const decoder = new SuiClientErrorDecoder();
+// Initialize the decoder
+const errorDecoder = new SuiClientErrorDecoder();
+const suiClient = new SuiClient({ url: 'https://fullnode.mainnet.sui.io' });
 
-  const handleTransaction = async () => {
+// Example: Decoding a transaction error
+async function transferSui(recipientAddress: string, amount: number) {
+  try {
+    const txb = new TransactionBlock();
+    const [coin] = txb.splitCoins(txb.gas, [amount]);
+    txb.transferObjects([coin], recipientAddress);
+    
+    const result = await suiClient.executeTransactionBlock({
+      transactionBlock: txb,
+      signer: keypair, // your keypair
+    });
+    
+    console.log('Transfer successful:', result.digest);
+  } catch (error) {
+    // Raw error might be: "MoveAbort(0x2::coin, 0) at instruction 15"
+    const decodedError = errorDecoder.parseError(error);
+    
+    console.error('Transaction failed:');
+    console.error('- Code:', decodedError.code); // 0
+    console.error('- Message:', decodedError.message); // "Error Code 0: Insufficient balance"
+    console.error('- Category:', decodedError.category); // "move_abort"
+    console.error('- Known Error:', decodedError.isKnownError); // true
+  }
+}
+```
+
+### 2. DeFi Pool Interaction with Custom Errors
+
+```typescript
+import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
+
+// Setup decoder with DeFi-specific error codes
+const defiDecoder = new SuiClientErrorDecoder({
+  customErrorCodes: {
+    // Pool-specific errors
+    100: "Pool does not exist",
+    101: "Insufficient liquidity in pool",
+    102: "Slippage tolerance exceeded",
+    103: "Pool is paused for maintenance",
+    104: "Invalid token pair",
+    
+    // Staking errors
+    200: "Staking period not yet ended",
+    201: "Rewards already claimed",
+    202: "Minimum stake amount not met",
+    203: "Unstaking cooldown period active",
+  }
+});
+
+async function swapTokens(tokenA: string, tokenB: string, amountIn: number) {
+  try {
+    const txb = new TransactionBlock();
+    
+    // Add your DeFi swap logic here
+    txb.moveCall({
+      target: '0x123::dex::swap',
+      arguments: [
+        txb.pure(tokenA),
+        txb.pure(tokenB),
+        txb.pure(amountIn)
+      ],
+      typeArguments: ['0x2::sui::SUI', '0x456::usdc::USDC']
+    });
+    
+    const result = await suiClient.signAndExecuteTransactionBlock({
+      transactionBlock: txb,
+      signer: keypair,
+      options: { showEffects: true }
+    });
+    
+    return result;
+  } catch (error) {
+    const decoded = defiDecoder.parseError(error);
+    
+    // Handle specific DeFi errors
+    if (decoded.code === 101) {
+      throw new Error('Not enough liquidity in the pool. Try a smaller amount.');
+    } else if (decoded.code === 102) {
+      throw new Error('Price moved too much. Increase slippage tolerance.');
+    } else {
+      throw new Error(`Swap failed: ${decoded.message}`);
+    }
+  }
+}
+```
+
+### 3. React Hook Integration
+
+```typescript
+import { useState } from 'react';
+import { useSignAndExecuteTransactionBlock } from '@mysten/dapp-kit';
+import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
+
+// Custom hook for error handling
+function useErrorDecoder() {
+  const decoder = new SuiClientErrorDecoder({
+    customErrorCodes: {
+      404: "NFT not found",
+      405: "NFT already minted",
+      406: "Mint limit exceeded",
+    }
+  });
+  
+  return decoder;
+}
+
+function MintNFTComponent() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransactionBlock();
+  const errorDecoder = useErrorDecoder();
+
+  const mintNFT = async () => {
+    setIsLoading(true);
+    setError('');
+    
     try {
-      await signAndExecute(/* ... */);
-    } catch (error) {
-      const decoded = decoder.parseError(error);
-      console.error(decoded.message);
+      const txb = new TransactionBlock();
+      txb.moveCall({
+        target: '0x123::nft::mint',
+        arguments: [txb.pure('My NFT Name')]
+      });
+      
+      const result = await signAndExecute({
+        transactionBlock: txb,
+        options: { showEffects: true }
+      });
+      
+      console.log('NFT minted successfully:', result.digest);
+    } catch (rawError) {
+      const decoded = errorDecoder.parseError(rawError);
+      
+      // Set user-friendly error message
+      setError(decoded.message);
+      
+      // Log detailed error for debugging
+      console.error('Mint failed:', {
+        code: decoded.code,
+        category: decoded.category,
+        isKnown: decoded.isKnownError,
+        original: decoded.originalError
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
-  
-  // ...
+
+  return (
+    <div>
+      <button onClick={mintNFT} disabled={isLoading}>
+        {isLoading ? 'Minting...' : 'Mint NFT'}
+      </button>
+      {error && <div className="error">{error}</div>}
+    </div>
+  );
 }
+```
+
+### 4. Advanced Error Handling with Categorization
+
+```typescript
+import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
+
+const decoder = new SuiClientErrorDecoder();
+
+async function handleComplexTransaction() {
+  try {
+    // Your complex transaction logic
+    const txb = new TransactionBlock();
+    // ... transaction setup
+    
+    const result = await suiClient.executeTransactionBlock({
+      transactionBlock: txb,
+      signer: keypair
+    });
+    
+    return result;
+  } catch (error) {
+    const decoded = decoder.parseError(error);
+    
+    // Handle different error categories
+    switch (decoded.category) {
+      case 'move_abort':
+        console.error('Smart contract error:', decoded.message);
+        // Maybe retry with different parameters
+        break;
+        
+      case 'transaction':
+        console.error('Transaction processing error:', decoded.message);
+        // Maybe increase gas or check network
+        break;
+        
+      case 'sui_system':
+        console.error('Sui system error:', decoded.message);
+        // Maybe retry after some time
+        break;
+        
+      default:
+        console.error('Unknown error occurred:', decoded.message);
+        // Log for investigation
+        break;
+    }
+    
+    // Re-throw with user-friendly message
+    throw new Error(decoded.message);
+  }
+}
+```
+
+### 5. Batch Transaction Error Handling
+
+```typescript
+async function processBatchTransactions(transactions: TransactionBlock[]) {
+  const decoder = new SuiClientErrorDecoder();
+  const results = [];
+  const errors = [];
+
+  for (let i = 0; i < transactions.length; i++) {
+    try {
+      const result = await suiClient.executeTransactionBlock({
+        transactionBlock: transactions[i],
+        signer: keypair
+      });
+      
+      results.push({ index: i, success: true, result });
+    } catch (error) {
+      const decoded = decoder.parseError(error);
+      
+      errors.push({
+        index: i,
+        success: false,
+        error: {
+          code: decoded.code,
+          message: decoded.message,
+          category: decoded.category,
+          isKnown: decoded.isKnownError
+        }
+      });
+      
+      // Continue with next transaction instead of stopping
+      console.warn(`Transaction ${i} failed: ${decoded.message}`);
+    }
+  }
+
+  return { results, errors };
+}
+```
+
+### 6. Error Monitoring and Analytics
+
+```typescript
+import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
+
+class ErrorAnalytics {
+  private decoder: SuiClientErrorDecoder;
+  private errorCounts: Map<string, number> = new Map();
+
+  constructor() {
+    this.decoder = new SuiClientErrorDecoder();
+  }
+
+  async executeWithAnalytics(transactionFn: () => Promise<any>) {
+    try {
+      return await transactionFn();
+    } catch (error) {
+      const decoded = this.decoder.parseError(error);
+      
+      // Track error frequency
+      const errorKey = `${decoded.category}:${decoded.code || 'unknown'}`;
+      this.errorCounts.set(errorKey, (this.errorCounts.get(errorKey) || 0) + 1);
+      
+      // Send to analytics service
+      this.sendToAnalytics({
+        timestamp: Date.now(),
+        errorCode: decoded.code,
+        errorMessage: decoded.message,
+        category: decoded.category,
+        isKnownError: decoded.isKnownError
+      });
+      
+      throw error; // Re-throw the original error
+    }
+  }
+
+  private async sendToAnalytics(errorData: any) {
+    // Send to your analytics service
+    console.log('Error Analytics:', errorData);
+  }
+
+  getErrorStats() {
+    return Object.fromEntries(this.errorCounts);
+  }
+}
+
+// Usage
+const analytics = new ErrorAnalytics();
+
+await analytics.executeWithAnalytics(async () => {
+  // Your transaction code
+  return await performSuiTransaction();
+});
+
+console.log('Error statistics:', analytics.getErrorStats());
+```
+
+### 7. Testing Error Scenarios
+
+```typescript
+import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
+
+describe('Error Handling Tests', () => {
+  const decoder = new SuiClientErrorDecoder({
+    customErrorCodes: {
+      999: "Test error for unit testing"
+    }
+  });
+
+  test('should handle insufficient gas error', () => {
+    const mockError = new Error('InsufficientGas: Transaction needs more gas');
+    const decoded = decoder.parseError(mockError);
+    
+    expect(decoded.category).toBe('sui_system');
+    expect(decoded.isKnownError).toBe(true);
+    expect(decoded.message).toContain('gas');
+  });
+
+  test('should handle custom error codes', () => {
+    const mockError = new Error('MoveAbort(0x123, 999)');
+    const decoded = decoder.parseError(mockError);
+    
+    expect(decoded.code).toBe(999);
+    expect(decoded.message).toContain('Test error for unit testing');
+    expect(decoded.isKnownError).toBe(true);
+  });
+
+  test('should handle unknown errors gracefully', () => {
+    const mockError = new Error('Some unknown error');
+    const decoded = decoder.parseError(mockError);
+    
+    expect(decoded.category).toBe('unknown');
+    expect(decoded.isKnownError).toBe(false);
+    expect(typeof decoded.message).toBe('string');
+  });
+});
 ```
 
 ## API Reference
@@ -92,38 +410,59 @@ function MyComponent() {
 ```typescript
 new SuiClientErrorDecoder(options?: {
   customErrorCodes?: Record<number, string>;
+  customTransactionErrors?: Record<string, string>;
   includeDefaults?: boolean; // Default: true
 })
 ```
 
 #### Methods
 
-- `parseError(error: any): ParsedError`
-- `decodeError(error: any): string`
-- `addErrorCodes(codes: Record<number, string>): void`
-- `updateDefaultErrorCodes(codes: Record<number, string>): void`
-- `getErrorCodes(): Record<number, string>`
+- `parseError(error: any): ParsedError` - Parse and categorize error
+- `decodeError(error: any): string` - Get human-readable error message
+- `addErrorCodes(codes: Record<number, string>): void` - Add custom error codes
+- `addTransactionErrors(errors: Record<string, string>): void` - Add transaction errors
+- `getErrorCodes(): Record<number, string>` - Get all error codes
+- `isKnownErrorCode(code: number): boolean` - Check if error code is known
 
 ### `ParsedError` Object
 
 ```typescript
-{
-  code?: number;
-  message: string;
-  isKnownError: boolean;
+interface ParsedError {
+  code?: number;                    // Numeric error code (if available)
+  errorType?: string;              // Transaction error type (if available)
+  message: string;                 // Human-readable error message
+  isKnownError: boolean;          // Whether error is recognized
   category: 'move_abort' | 'transaction' | 'sui_system' | 'unknown';
-  originalError: any;
+  originalError: any;             // Original error object for debugging
 }
+```
+
+### Utility Functions
+
+```typescript
+// Quick error decoding without creating decoder instance
+decodeSuiError(error: any, customCodes?: Record<number, string>): string
+
+// Default decoder instance
+import { defaultDecoder } from 'suiclient-error-decoder';
 ```
 
 ## Error Categories
 
 | Category       | Description                               | Example Error Codes |
 |----------------|-------------------------------------------|---------------------|
-| `move_abort`   | Errors from Move smart contracts          | 1-999              |
-| `sui_system`   | Sui node/system-level errors             | 1000-1999          |
-| `transaction`  | Transaction processing errors            | 2000-2999          |
+| `move_abort`   | Errors from Move smart contracts          | 1000-1999          |
+| `sui_system`   | Sui node/system-level errors             | 2000-2999          |
+| `transaction`  | Transaction processing errors            | String-based       |
 | `unknown`      | Unrecognized error patterns              | N/A                |
+
+## Best Practices
+
+1. **Always handle errors**: Wrap your Sui transactions in try-catch blocks
+2. **Use specific error codes**: Define custom error codes for your smart contracts
+3. **Categorize handling**: Handle different error categories appropriately
+4. **Log for debugging**: Keep original error objects for development debugging
+5. **User-friendly messages**: Show decoded messages to users, not raw errors
 
 ## Contributing
 
@@ -134,10 +473,6 @@ Contributions are welcome! Please open an issue or submit a PR:
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a pull request
-
-## License
-
-Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Support
 

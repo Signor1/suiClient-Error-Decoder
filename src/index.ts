@@ -208,7 +208,7 @@ export class SuiClientErrorDecoder {
   ): { errorType: string; message: string } | null {
     // Check for exact matches with transaction error keys
     for (const [errorType, message] of Object.entries(this.transactionErrors)) {
-      if (errorString.includes(errorType)) {
+      if (new RegExp(`\\b${errorType}\\b`).test(errorString)) {
         return {
           errorType,
           message: `Transaction Error (${errorType}): ${message}`,
@@ -362,7 +362,7 @@ export class SuiClientErrorDecoder {
       const match = errorString.match(pattern);
       if (match && match[1]) {
         const code = parseInt(match[1], 10);
-        if (!isNaN(code) && code >= 0) {
+        if (!isNaN(code)) {
           // Only accept non-negative numbers
           return code;
         }
