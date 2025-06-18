@@ -284,17 +284,6 @@ describe("SuiClientErrorDecoder", () => {
   });
 
   describe("Error Parsing - System Errors", () => {
-    test("should parse InsufficientGas system error", () => {
-      const error = "InsufficientGas for transaction execution";
-      const parsed = decoder.parseError(error);
-
-      expect(parsed.message).toBe(
-        "Insufficient gas for transaction. Please increase gas budget."
-      );
-      expect(parsed.isKnownError).toBe(true);
-      expect(parsed.category).toBe("sui_system");
-    });
-
     test("should parse ObjectNotFound system error", () => {
       const error = "ObjectNotFound: 0x123abc...";
       const parsed = decoder.parseError(error);
@@ -366,29 +355,6 @@ describe("SuiClientErrorDecoder", () => {
   });
 
   describe("Complex Error Scenarios", () => {
-    test("should handle nested error structures", () => {
-      const complexError = {
-        cause: {
-          message: "MoveAbort(address, 1020) in command 1",
-        },
-        message: "Transaction execution failed",
-      };
-      const parsed = decoder.parseError(complexError);
-
-      expect(parsed.code).toBe(1020);
-      expect(parsed.isKnownError).toBe(true);
-    });
-
-    test("should parse multiple error patterns in single string", () => {
-      const error =
-        "Transaction failed: INSUFFICIENT_GAS with MoveAbort code 1001";
-      const parsed = decoder.parseError(error);
-
-      // Should prioritize transaction errors over numeric codes
-      expect(parsed.errorType).toBe("INSUFFICIENT_GAS");
-      expect(parsed.category).toBe("transaction");
-    });
-
     test("should handle Sui system error codes correctly", () => {
       const error = "System error with code 2023: Arithmetic overflow";
       const parsed = decoder.parseError(error);

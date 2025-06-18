@@ -133,19 +133,7 @@ export class SuiClientErrorDecoder {
   public parseError(error: any): ParsedError {
     const errorString = this.extractErrorString(error);
 
-    // First, check for transaction error types (string-based)
-    const transactionError = this.checkTransactionErrors(errorString);
-    if (transactionError) {
-      return {
-        errorType: transactionError.errorType,
-        message: transactionError.message,
-        isKnownError: true,
-        category: "transaction",
-        originalError: error,
-      };
-    }
-
-    // Try to extract numeric error code
+    // Try to extract numeric error code FIRST (before checking transaction patterns)
     const errorCode = this.extractErrorCode(errorString);
 
     if (errorCode !== null) {
@@ -169,6 +157,18 @@ export class SuiClientErrorDecoder {
       }
     }
 
+    // Check for transaction error types (string-based) if no numeric code found
+    const transactionError = this.checkTransactionErrors(errorString);
+    if (transactionError) {
+      return {
+        errorType: transactionError.errorType,
+        message: transactionError.message,
+        isKnownError: true,
+        category: "transaction",
+        originalError: error,
+      };
+    }
+
     // Check for named errors
     const namedError = this.checkNamedErrors(errorString);
     if (namedError) {
@@ -185,7 +185,7 @@ export class SuiClientErrorDecoder {
     if (systemError) {
       return {
         message: systemError.message,
-        isKnownError: true,
+        isKnownError: true, // FIX: System errors should be marked as known
         category: systemError.category,
         originalError: error,
       };
@@ -321,22 +321,25 @@ export class SuiClientErrorDecoder {
     // Fallback to String conversion
     try {
       return String(error);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
+      // If String conversion fails, return empty string
       return "";
     }
   }
 
   /**
-   * Extract error code using regex patterns
+   * Extract error code using regex patterns - IMPROVED
    */
   private extractErrorCode(errorString: string): number | null {
     const patterns = [
       // Standard MoveAbort patterns - more specific patterns first
       /MoveAbort\([^,)]*,\s*(\d+)\)/,
-      /MoveAbort\([^)]+\)\s*,\s*(\d+)\)/,
+      /MoveAbort\([^)]+\)\s*,?\s*(\d+)\)/,
+      /MoveAbort.*?(\d+)\)/,
       /}, (\d+)\) in command/,
-      /abort_code:\s*(\d+)/,
-      /error_code:\s*(\d+)/,
+      /abort_code:\s*(\d+)/i,
+      /error_code:\s*(\d+)/i,
 
       // Protocol-specific patterns
       /CetusError\((\d+)\)/,
@@ -349,6 +352,10 @@ export class SuiClientErrorDecoder {
       /ErrorCode:?\s*(\d+)/i,
       /code[:\s]*(\d+)/i,
       /error[:\s]*(\d+)/i,
+
+      // Additional patterns to catch more cases
+      /with\s+code\s+(\d+)/i,
+      /error\s+(\d+)/i,
     ];
 
     for (const pattern of patterns) {
@@ -462,6 +469,11 @@ export class SuiClientErrorDecoder {
         message: "Invalid transaction signature.",
         category: "transaction" as const,
       },
+      {
+        pattern: /Unexpected deserialization error/i,
+        message: "Unexpected deserialization error",
+        category: "sui_system" as const,
+      },
     ];
 
     for (const { pattern, message, category } of systemErrors) {
@@ -544,6 +556,23 @@ export class SuiClientErrorDecoder {
    */
   public getTransactionErrorMessage(errorType: string): string | null {
     return this.transactionErrors[errorType] || null;
+  }
+
+  /**
+   * Get all overridden error codes (those that differ from defaults)
+   */
+  public getOverriddenCodes(): number[] {
+    const overridden: number[] = [];
+    for (const code of Object.keys(this.errorCodes)) {
+      const numCode = parseInt(code);
+      if (
+        DEFAULT_SUI_ERROR_CODES[numCode] &&
+        this.errorCodes[numCode] !== DEFAULT_SUI_ERROR_CODES[numCode]
+      ) {
+        overridden.push(numCode);
+      }
+    }
+    return overridden;
   }
 }
 
