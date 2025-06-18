@@ -9,6 +9,8 @@
 
 **SuiClient Error Decoder** is a robust error decoding toolkit for Sui blockchain developers. Intelligently parses Move abort codes, system errors, and transaction failures with zero dependencies. Features customizable error mappings, automatic error categorization, and Sui-specific pattern recognition to simplify debugging and improve user feedback in dApps.
 
+[npmjs.com/package/suiclient-error-decoder](https://www.npmjs.com/package/suiclient-error-decoder)
+
 ## Features
 
 - 🔍 **Comprehensive Error Parsing**: Handles Move abort codes, named errors, and system errors
@@ -48,17 +50,18 @@ try {
 ### 1. Basic Setup and Usage
 
 ```typescript
-import { SuiClient } from '@mysten/sui.js/client';
+import { SuiClient } from "@mysten/sui/client";
+import { Transaction } from "@mysten/sui/transactions";
 import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
 
 // Initialize the decoder
 const errorDecoder = new SuiClientErrorDecoder();
-const suiClient = new SuiClient({ url: 'https://fullnode.mainnet.sui.io' });
+const suiClient = new SuiClient({ url: getFullnodeUrl("testnet") });
 
 // Example: Decoding a transaction error
 async function transferSui(recipientAddress: string, amount: number) {
   try {
-    const txb = new TransactionBlock();
+    const txb = new Transaction();
     const [coin] = txb.splitCoins(txb.gas, [amount]);
     txb.transferObjects([coin], recipientAddress);
     
@@ -84,6 +87,8 @@ async function transferSui(recipientAddress: string, amount: number) {
 ### 2. DeFi Pool Interaction with Custom Errors
 
 ```typescript
+// ...other imports
+import { Transaction } from "@mysten/sui/transactions";
 import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
 
 // Setup decoder with DeFi-specific error codes
@@ -106,7 +111,7 @@ const defiDecoder = new SuiClientErrorDecoder({
 
 async function swapTokens(tokenA: string, tokenB: string, amountIn: number) {
   try {
-    const txb = new TransactionBlock();
+    const txb = new Transaction();
     
     // Add your DeFi swap logic here
     txb.moveCall({
@@ -145,7 +150,8 @@ async function swapTokens(tokenA: string, tokenB: string, amountIn: number) {
 
 ```typescript
 import { useState } from 'react';
-import { useSignAndExecuteTransactionBlock } from '@mysten/dapp-kit';
+import { Transaction } from "@mysten/sui/transactions";
+import { useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
 
 // Custom hook for error handling
@@ -164,7 +170,7 @@ function useErrorDecoder() {
 function MintNFTComponent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const { mutateAsync: signAndExecute } = useSignAndExecuteTransactionBlock();
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
   const errorDecoder = useErrorDecoder();
 
   const mintNFT = async () => {
@@ -172,7 +178,7 @@ function MintNFTComponent() {
     setError('');
     
     try {
-      const txb = new TransactionBlock();
+      const txb = new Transaction();
       txb.moveCall({
         target: '0x123::nft::mint',
         arguments: [txb.pure('My NFT Name')]
@@ -216,6 +222,8 @@ function MintNFTComponent() {
 ### 4. Advanced Error Handling with Categorization
 
 ```typescript
+// ...imports
+import { Transaction } from "@mysten/sui/transactions";
 import { SuiClientErrorDecoder } from 'suiclient-error-decoder';
 
 const decoder = new SuiClientErrorDecoder();
@@ -223,7 +231,7 @@ const decoder = new SuiClientErrorDecoder();
 async function handleComplexTransaction() {
   try {
     // Your complex transaction logic
-    const txb = new TransactionBlock();
+    const txb = new Transaction();
     // ... transaction setup
     
     const result = await suiClient.executeTransactionBlock({

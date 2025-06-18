@@ -224,9 +224,3 @@ export const DEFAULT_SUI_ERROR_CODES: ErrorCodeMap = {
   ...SUI_SYSTEM_ERROR_CODES,
   // Transaction Error Codes
 };
-
-/**
- * Version information for tracking updates
- */
-export const ERROR_CODES_VERSION = "1.0.0";
-export const LAST_UPDATED = "2025-06-16";
