@@ -1,6 +1,6 @@
 {
   "name": "suiclient-error-decoder",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A comprehensive error decoder for Sui blockchain transactions with support for custom error codes",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,11 +22,10 @@
     "build": "tsc",
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
-    "prepublishOnly": "npm run build",
     "lint": "eslint src/**/*.ts tests/**/*.ts",
     "lint:fix": "eslint src/**/*.ts tests/**/*.ts --fix",
     "coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage",
-    "prepack": "npm run test && npm run build"
+    "prepublishOnly": "npm test && npm run build"
   },
   "repository": {
     "type": "git",
@@ -59,9 +58,6 @@
   "homepage": "https://github.com/Signor1/suiClient-Error-Decoder#readme",
   "engines": {
     "node": ">=18.0.0"
-  },
-  "peerDependencies": {
-    "@mysten/sui": ">=1.0.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

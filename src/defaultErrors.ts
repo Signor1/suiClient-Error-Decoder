@@ -222,5 +222,4 @@ export const DEFAULT_SUI_ERROR_CODES: ErrorCodeMap = {
   ...MOVE_ABORT_ERROR_CODES,
   // Sui System Error Codes
   ...SUI_SYSTEM_ERROR_CODES,
-  // Transaction Error Codes
 };

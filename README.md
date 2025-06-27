@@ -424,12 +424,18 @@ new SuiClientErrorDecoder(options?: {
 
 #### Methods
 
-- `parseError(error: any): ParsedError` - Parse and categorize error
-- `decodeError(error: any): string` - Get human-readable error message
-- `addErrorCodes(codes: Record<number, string>): void` - Add custom error codes
-- `addTransactionErrors(errors: Record<string, string>): void` - Add transaction errors
-- `getErrorCodes(): Record<number, string>` - Get all error codes
-- `isKnownErrorCode(code: number): boolean` - Check if error code is known
+- `parseError(error: any): ParsedError` - The core method. Parses and categorizes an error into a `ParsedError` object.
+- `decodeError(error: any): string` - A convenience method that returns only the human-readable error message string.
+- `addErrorCodes(codes: Record<number, string>): void` - Adds or updates custom numeric error codes at runtime.
+- `addTransactionErrors(errors: Record<string, string>): void` - Adds or updates custom string-based transaction errors at runtime.
+- `updateDefaultErrorCodes(defaultCodes: Record<number, string>): void` - Replaces the built-in default codes, preserving any custom codes you've added.
+- `updateDefaultTransactionErrors(defaultErrors: Record<string, string>): void` - Replaces the built-in default transaction errors, preserving custom ones.
+- `getErrorCodes(): Record<number, string>` - Returns a copy of all numeric error codes currently in use (defaults + custom).
+- `getTransactionErrors(): Record<string, string>` - Returns a copy of all transaction errors currently in use.
+- `getErrorMessage(code: number): string | null` - Gets the message for a specific numeric error code.
+- `getTransactionErrorMessage(errorType: string): string | null` - Gets the message for a specific transaction error type.
+- `isKnownErrorCode(code: number): boolean` - Checks if a numeric error code is in the map.
+- `isKnownTransactionError(errorType: string): boolean` - Checks if a transaction error type is in the map.
 
 ### `ParsedError` Object
 
@@ -448,7 +454,7 @@ interface ParsedError {
 
 ```typescript
 // Quick error decoding without creating decoder instance
-decodeSuiError(error: any, customCodes?: Record<number, string>): string
+decodeSuiError(error: any, customCodes?: Record<number, string>, customTransactionErrors?: Record<string, string>): string
 
 // Default decoder instance
 import { defaultDecoder } from 'suiclient-error-decoder';
